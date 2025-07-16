@@ -1,3 +1,4 @@
+// content.js
 (async function () {
     const sessionId = Date.now();
     const dpr = window.devicePixelRatio;
@@ -45,7 +46,7 @@
   
     for (let y of scrollYPositions) {
       window.scrollTo(0, y);
-      await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+      await new Promise(r => setTimeout(r, 650)); // Wait to avoid Chrome rate limit
   
       const dataUrl = await new Promise(resolve => {
         chrome.runtime.sendMessage({ type: 'capture' }, resolve);
@@ -103,11 +104,16 @@
       const chunkCtx = chunkCanvas.getContext('2d');
       chunkCtx.drawImage(canvas, 0, offsetY, canvas.width, chunkHeight, 0, 0, canvas.width, chunkHeight);
   
-      const url = chunkCanvas.toDataURL('image/png');
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `screenshot_${sessionId}_part_${index++}.png`;
-      link.click();
+      chunkCanvas.toBlob(blob => {
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `screenshot_${sessionId}_part_${index++}.png`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      }, 'image/png');
   
       offsetY += chunkHeight;
     }
