@@ -9,11 +9,5 @@
   },
   "action": {
     "default_title": "Capture Full Page"
-  },
-  "content_scripts": [
-    {
-      "matches": ["<all_urls>"],
-      "js": ["content.js"]
-    }
-  ]
+  }
 }
