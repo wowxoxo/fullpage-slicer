@@ -118,6 +118,31 @@
       offsetY += chunkHeight;
     }
   
-    alert('Done! Sliced and saved.');
+    // alert('Done! Sliced and saved.');
+    const notice = document.createElement('div');
+    notice.innerText = '✅ Screenshot captured & sliced!';
+    Object.assign(notice.style, {
+    position: 'fixed',
+    bottom: '20px',
+    left: '50%',
+    transform: 'translateX(-50%)',
+    background: '#1e1e1e',
+    color: '#fff',
+    padding: '10px 16px',
+    borderRadius: '8px',
+    fontSize: '14px',
+    zIndex: 9999,
+    boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
+    transition: 'opacity 0.3s ease',
+    opacity: 0,
+    });
+
+    document.body.appendChild(notice);
+    requestAnimationFrame(() => { notice.style.opacity = 1; });
+
+    setTimeout(() => {
+    notice.style.opacity = 0;
+    setTimeout(() => notice.remove(), 300);
+    }, 3000);
   })();
   
