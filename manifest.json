@@ -1,0 +1,15 @@
+{
+    "name": "FullPage Slicer",
+    "version": "1.0",
+    "manifest_version": 3,
+    "description": "Capture and slice full page screenshot for Figma",
+    "permissions": ["tabs", "scripting", "activeTab"],
+    "action": {
+      "default_popup": "popup.html"
+    },
+    "background": {
+      "service_worker": "background.js"
+    },
+    "host_permissions": ["<all_urls>"]
+  }
+  
