@@ -1,7 +1,6 @@
 (async function () {
     const body = document.body;
     const html = document.documentElement;
-  
     const totalHeight = Math.max(
       body.scrollHeight,
       body.offsetHeight,
@@ -9,42 +8,49 @@
       html.scrollHeight,
       html.offsetHeight
     );
+  
     const viewportHeight = window.innerHeight;
-    const devicePixelRatio = window.devicePixelRatio;
+    const overlap = 100; // for safety
+    const sessionId = Date.now();
   
     const chunks = [];
-    for (let offset = 0; offset < totalHeight; offset += viewportHeight) {
+    let offset = 0;
+  
+    while (offset < totalHeight) {
       window.scrollTo(0, offset);
-      await new Promise(r => setTimeout(r, 250)); // let it render
+      await new Promise(r => setTimeout(r, 300));
   
       const dataUrl = await new Promise(resolve => {
         chrome.runtime.sendMessage({ type: "capture" }, resolve);
       });
-      chunks.push(dataUrl);
+      chunks.push({ offsetY: offset, dataUrl });
+  
+      offset += (viewportHeight - overlap);
     }
   
-    // stitch & slice
+    // Load all images and track true height
+    const images = await Promise.all(chunks.map(chunk => {
+      return new Promise(resolve => {
+        const img = new Image();
+        img.src = chunk.dataUrl;
+        img.onload = () => resolve({ ...chunk, img });
+      });
+    }));
+  
+    const width = images[0].img.width;
+    const totalImageHeight = images.length * (viewportHeight - overlap) + overlap;
+  
     const canvas = document.createElement("canvas");
-    const ctx = canvas.getContext("2d");
-  
-    const img = new Image();
-    img.src = chunks[0];
-    await img.decode();
-  
-    const width = img.width;
-    const totalImageHeight = chunks.length * img.height;
-  
     canvas.width = width;
     canvas.height = totalImageHeight;
+    const ctx = canvas.getContext("2d");
   
-    for (let i = 0; i < chunks.length; i++) {
-      const img = new Image();
-      img.src = chunks[i];
-      await img.decode();
-      ctx.drawImage(img, 0, i * img.height);
-    }
+    images.forEach((chunk, i) => {
+      const drawY = i * (viewportHeight - overlap);
+      ctx.drawImage(chunk.img, 0, 0, width, chunk.img.height, 0, drawY, width, chunk.img.height);
+    });
   
-    // now slice to max 4096px height
+    // Slice to max 4096px chunks
     const maxHeight = 4096;
     let offsetY = 0;
     let sliceIndex = 1;
@@ -55,13 +61,13 @@
       sliceCanvas.width = width;
       sliceCanvas.height = sliceHeight;
       const sliceCtx = sliceCanvas.getContext("2d");
-      sliceCtx.drawImage(canvas, 0, offsetY, width, sliceHeight, 0, 0, width, sliceHeight);
   
+      sliceCtx.drawImage(canvas, 0, offsetY, width, sliceHeight, 0, 0, width, sliceHeight);
       const sliceData = sliceCanvas.toDataURL("image/png");
   
       const link = document.createElement("a");
       link.href = sliceData;
-      link.download = `screenshot_part_${sliceIndex++}.png`;
+      link.download = `screenshot_${sessionId}_part_${sliceIndex++}.png`;
       link.click();
   
       offsetY += sliceHeight;
